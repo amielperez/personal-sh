@@ -1,0 +1,39 @@
+#!/bin/bash
+
+command=$1
+BASE_DIR="$HOME/gwitch"
+IDS_DIR="$BASE_DIR/ids"
+
+if [ "$command" = "to" ]; then
+  user_id=$2
+  ls "$BASE_DIR/ids/$user_id" > /dev/null
+  if [ "$?" = "0" ]; then
+    echo "Backing up current ids..."
+    cp "$HOME/.ssh/id_rsa" "$IDS_DIR/.backup/id_rsa"
+    cp "$HOME/.ssh/id_rsa.pub" "$IDS_DIR/.backup/id_rsa.pub"
+    echo "Enabling keys for $user_id..."
+    cp "$IDS_DIR/$user_id/id_rsa" "$HOME/.ssh/id_rsa"
+    cp "$IDS_DIR/$user_id/id_rsa.pub" "$HOME/.ssh/id_rsa.pub"
+    echo "$user_id" > "$IDS_DIR/.current"
+    echo "Reconfiguring git..."
+    source "$IDS_DIR/$user_id/.conf"
+    git config --global user.name "$git_user_name"
+    git config --global user.email "$git_user_email"
+    echo "Echoing new config..."
+    echo "-------------------------"
+    git config user.name
+    git config user.email 
+    ssh-keygen -lf ~/.ssh/id_rsa.pub
+    echo "-------------------------"
+    echo "Gwitch to $user_id complete!"
+  else
+    echo "Error: No gwitch profile set up for $user_id"
+  fi
+elif [ "$command" = "whoami" ]; then
+  cat "$IDS_DIR/.current"
+else
+  echo "Unrecognized command $command"
+  echo "Usage:"
+  echo "to <github username> - switch to this username. Replaces your keys and reconfigures your git"
+  echo "whoami - check which git id is active"
+fi
